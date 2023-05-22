@@ -10,6 +10,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@vueuse/components": "^10.1.2",
+    "@vueuse/core": "^10.1.2",
     "lodash": "^4.17.21",
     "vue": "^3.2.47",
     "vuedraggable": "^4.1.0"
