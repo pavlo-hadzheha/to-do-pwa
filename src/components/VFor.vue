@@ -6,8 +6,17 @@
       :index="index"
       :isExpanded="data[0].expanded"
       :toggle="toggle"
+      :setDraggableElement="setDraggableElement"
     >
-      <div @click="toggle(items[0])">{{ data[0].title }}</div>
+      <div
+        :ref="setDraggableElement"
+        :style="{
+          marginLeft: `${10 * depth}px`,
+        }"
+        @click="toggle(data[0])"
+      >
+        {{ data[0].title }}
+      </div>
     </slot>
     <template v-if="children && data[0].expanded">
       <VFor
@@ -38,6 +47,7 @@
 <script lang="js" setup>
 import { onMounted, ref } from 'vue'
 import { keyBy, cloneDeep } from 'lodash'
+import { useDraggable } from '../composables/useDraggable'
 
 const props = defineProps({
   items: {
@@ -71,6 +81,8 @@ const props = defineProps({
 
 const data = ref([])
 const nodeMap = ref(null)
+const el = ref()
+useDraggable(el)
 
 function expandDefaultExpandedKeys () {
   props.defaultExpandedKeys.forEach(_defaultKey => {
@@ -115,7 +127,12 @@ function setBranchExpansionState (item, state) {
   }
 }
 
+function setDraggableElement (_element) {
+  el.value = _element
+}
+
 const toggle = (item) => {
+  console.log('VFor.toggle')
   item.expanded = !item.expanded
   if (!item.expanded) {
     setBranchExpansionState(item, false)

@@ -1,30 +1,20 @@
 <template>
   <div
     ref="el"
-    class="ml-5"
+    class="ml-5 droppable"
   >
     <VFor
       ref="el"
-      #default="{isExpanded, item, toggle, depth, ...slotData}"
+      #default="{isExpanded, item, toggle, depth, setDraggableElement, ...slotData}"
       :items="items"
       :children="children"
       :children-path="childrenPath"
       :key-prop="keyProp"
       :default-expanded-keys="defaultExpandedKeys"
     >
-      <!-- <Draggable
-        :prevent-default="true"
-        p="x-4 y-2"
-        border="~ gray-400/30 rounded"
-        shadow="~ hover:lg"
-        storage-key="vueuse-draggable-pos"
-        storage-type="session"
-        :handle="handle"
-        @start="onDragStart(depth, index)"
-      > -->
       <div
+        :ref="setDraggableElement"
         class="tree-node"
-        @click="() => el.style.backgroundColor = 'antiquewhite'"
       >
         <div
           v-show="item[childrenPath]?.length"
@@ -66,17 +56,11 @@
           </div>
         </slot>
       </div>
-      <!-- </Draggable> -->
     </VFor>
   </div>
 </template>
 
 <script lang="js" setup>
-import { onMounted, ref } from 'vue'
-import { useDraggable } from '../composables/useDraggable'
-// import { useDraggable } from '@vueuse/core'
-// import { UseDraggable as Draggable } from '@vueuse/components'
-
 import VFor from './VFor.vue'
 import ChevronRight from './icons/ChevronRight.vue'
 import ChevronDown from './icons/ChevronDown.vue'
@@ -103,11 +87,11 @@ defineProps({
   }
 })
 
-const el = ref()
+// const el = ref()
 
-onMounted(() => {
-  console.log('onMounted', el.value)
-})
+// onMounted(() => {
+//   console.log('onMounted', el.value)
+// })
 // useDraggable(el)
 // const handle = ref < HTMLElement | null > (null)
 
@@ -118,7 +102,6 @@ onMounted(() => {
 // function onDragStart (...data) {
 //   console.log(...data)
 // }
-defineExpose({ el })
 </script>
 
 <style lang="scss" scoped>

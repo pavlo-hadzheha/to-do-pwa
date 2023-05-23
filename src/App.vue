@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import AppTree from './components/AppTree.vue'
+import DragTest from './components/DragTest.vue'
 
 const listVisible = ref(true)
 const items = reactive([
@@ -85,4 +86,7 @@ const items = reactive([
     :children="true"
     :default-expanded-keys="[40201]"
   />
+  <br>
+  <br>
+  <DragTest />
 </template>

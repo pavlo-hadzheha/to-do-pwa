@@ -1,12 +1,13 @@
-import { ref, toRef, onMounted, onUnmounted } from 'vue'
+import { ref, toRef, onMounted, onUnmounted, nextTick } from 'vue'
 
-export const useDraggable = (_target) => {
+export const useDraggable = (_target, _handle) => {
 //   if (!(unref(_target) instanceof HTMLElement)) throw TypeError('_target must inherit from HTMLElement')
 
   const currentDroppable = ref(null)
   const target = toRef(_target)
 
   function onMouseDown (event) {
+    console.log('useDraggable.onMouseDown')
     const shiftX = event.clientX - target.value.getBoundingClientRect().left
     const shiftY = event.clientY - target.value.getBoundingClientRect().top
 
@@ -47,19 +48,27 @@ export const useDraggable = (_target) => {
     target.value.onmouseup = function () {
       document.removeEventListener('mousemove', onMouseMove)
       target.value.onmouseup = null
+      target.value.style.position = 'static'
     }
   }
 
   function onDragStart () {
+    console.log('onDragStart')
     return false
   }
   onMounted(() => {
-    console.log(target.value)
-    target.value.addEventListener('onmousedown', onMouseDown)
-    target.value.addEventListener('ondragstart', onDragStart)
+    nextTick(() => {
+      console.log('useDraggable.onMounted', target.value)
+      if (!target.value) return
+      target.value.style.cursor = 'move'
+      target.value.addEventListener('mousedown', onMouseDown)
+      target.value.addEventListener('dragstart', onDragStart)
+    })
   })
 
   onUnmounted(() => {
+    if (!target.value) return
+    target.value.style.cursor = 'initial'
     target.value.removeEventListener('onmousedown', onMouseDown)
     target.value.removeEventListener('ondragstart', onDragStart)
   })
