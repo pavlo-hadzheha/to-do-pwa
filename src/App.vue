@@ -84,7 +84,8 @@ const items = reactive([
     v-if="listVisible"
     :items="items"
     :children="true"
-    :default-expanded-keys="[40201]"
+    :default-expanded-keys="[]"
+    default-expand-all
   />
   <br>
   <br>

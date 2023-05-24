@@ -1,19 +1,18 @@
 <template>
   <div
-    ref="el"
-    class="ml-5 droppable"
+    class="ml-5"
   >
     <VFor
       ref="el"
-      #default="{isExpanded, item, toggle, depth, setDraggableElement, ...slotData}"
+      #default="{isExpanded, item, toggle, depth, setHandleElement, ...slotData}"
       :items="items"
       :children="children"
       :children-path="childrenPath"
       :key-prop="keyProp"
       :default-expanded-keys="defaultExpandedKeys"
+      :default-expand-all="defaultExpandAll"
     >
       <div
-        :ref="setDraggableElement"
         class="tree-node"
       >
         <div
@@ -41,7 +40,7 @@
           >
             <div class="flex items-center gap-x-1">
               <ArrowsIcon
-                ref="handle"
+                :ref="setHandleElement"
                 class="cursor-move"
               />
               <input
@@ -84,24 +83,10 @@ defineProps({
   defaultExpandedKeys: {
     type: [Object, Array],
     default: () => (new Set())
-  }
+  },
+  defaultExpandAll: Boolean
 })
 
-// const el = ref()
-
-// onMounted(() => {
-//   console.log('onMounted', el.value)
-// })
-// useDraggable(el)
-// const handle = ref < HTMLElement | null > (null)
-
-// const { x, y, style } = useDraggable(el, {
-//   preventDefault: true
-// })
-
-// function onDragStart (...data) {
-//   console.log(...data)
-// }
 </script>
 
 <style lang="scss" scoped>

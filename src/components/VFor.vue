@@ -1,35 +1,40 @@
 <template>
   <template v-if="data?.length">
-    <slot
-      :item="data[0]"
-      :depth="depth"
-      :index="index"
-      :isExpanded="data[0].expanded"
-      :toggle="toggle"
-      :setDraggableElement="setDraggableElement"
+    <div
+      :ref="setDraggableElement"
+      class="droppable"
     >
-      <div
-        :ref="setDraggableElement"
-        :style="{
-          marginLeft: `${10 * depth}px`,
-        }"
-        @click="toggle(data[0])"
+      <slot
+        :item="data[0]"
+        :depth="depth"
+        :index="index"
+        :isExpanded="data[0].expanded"
+        :toggle="toggle"
+        :setDraggableElement="setDraggableElement"
+        :setHandleElement="setHandleElement"
       >
-        {{ data[0].title }}
-      </div>
-    </slot>
-    <template v-if="children && data[0].expanded">
-      <VFor
-        #default="slotData"
-        :items="data[0][childrenPath]"
-        :children="children"
-        :children-path="childrenPath"
-        :depth="depth + 1"
-        :index="0"
-      >
-        <slot v-bind="slotData" />
-      </VFor>
-    </template>
+        <div
+          :style="{
+            marginLeft: `${10 * depth}px`,
+          }"
+          @click="toggle(data[0])"
+        >
+          {{ data[0].title }}
+        </div>
+      </slot>
+      <template v-if="children && data[0].expanded">
+        <VFor
+          #default="slotData"
+          :items="data[0][childrenPath]"
+          :children="children"
+          :children-path="childrenPath"
+          :depth="depth + 1"
+          :index="0"
+        >
+          <slot v-bind="slotData" />
+        </VFor>
+      </template>
+    </div>
     <VFor
       v-if="data.length"
       #default="slotData"
@@ -44,7 +49,7 @@
   </template>
 </template>
 
-<script lang="js" setup>
+<script setup>
 import { onMounted, ref } from 'vue'
 import { keyBy, cloneDeep } from 'lodash'
 import { useDraggable } from '../composables/useDraggable'
@@ -73,6 +78,7 @@ const props = defineProps({
     type: Array,
     default: () => ([])
   },
+  defaultExpandAll: Boolean,
   keyProp: {
     type: String,
     default: 'id'
@@ -82,18 +88,25 @@ const props = defineProps({
 const data = ref([])
 const nodeMap = ref(null)
 const el = ref()
-useDraggable(el)
+const handle = ref()
+useDraggable(el, handle)
 
 function expandDefaultExpandedKeys () {
-  props.defaultExpandedKeys.forEach(_defaultKey => {
-    const node = nodeMap.value[_defaultKey]
-    if (node) {
-      const branchKeyChain = node.$key.split('-').map(_key => (typeof _defaultKey === 'number' ? Number(_key) : _key))
-      branchKeyChain.forEach(_key => {
-        nodeMap.value[_key].expanded = true
-      })
+  if (!props.defaultExpandAll) {
+    props.defaultExpandedKeys.forEach(_defaultKey => {
+      const node = nodeMap.value[_defaultKey]
+      if (node) {
+        const branchKeyChain = node.$key.split('-').map(_key => (typeof _defaultKey === 'number' ? Number(_key) : _key))
+        branchKeyChain.forEach(_key => {
+          nodeMap.value[_key].expanded = true
+        })
+      }
+    })
+  } else {
+    for (const _key in nodeMap.value) {
+      nodeMap.value[_key].expanded = true
     }
-  })
+  }
 }
 
 function flatten (items) {
@@ -129,6 +142,10 @@ function setBranchExpansionState (item, state) {
 
 function setDraggableElement (_element) {
   el.value = _element
+}
+
+function setHandleElement (_handle) {
+  handle.value = _handle instanceof HTMLElement ? _handle : _handle?.$el
 }
 
 const toggle = (item) => {
