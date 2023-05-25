@@ -3,7 +3,7 @@
     class="ml-5"
   >
     <VFor
-      ref="el"
+      ref="reference"
       #default="{isExpanded, item, toggle, depth, setHandleElement, ...slotData}"
       :items="items"
       :children="children"
@@ -11,6 +11,8 @@
       :key-prop="keyProp"
       :default-expanded-keys="defaultExpandedKeys"
       :default-expand-all="defaultExpandAll"
+      :draggable="draggable"
+      @drop="$emit('drop', $event)"
     >
       <div
         class="tree-node"
@@ -40,10 +42,12 @@
           >
             <div class="flex items-center gap-x-1">
               <ArrowsIcon
+                v-if="draggable"
                 :ref="setHandleElement"
                 class="cursor-move"
               />
               <input
+                v-model="checked[item[keyProp]]"
                 type="checkbox"
                 @click.stop
               >
@@ -64,6 +68,12 @@ import VFor from './VFor.vue'
 import ChevronRight from './icons/ChevronRight.vue'
 import ChevronDown from './icons/ChevronDown.vue'
 import ArrowsIcon from './icons/ArrowsIcon.vue'
+import { onMounted, ref, reactive } from 'vue'
+
+const reference = ref()
+const checked = reactive({})
+
+defineEmits(['drop', 'dragstart'])
 
 defineProps({
   items: {
@@ -81,12 +91,18 @@ defineProps({
     default: 'id'
   },
   defaultExpandedKeys: {
-    type: [Object, Array],
-    default: () => (new Set())
+    type: Array,
+    default: () => ([])
   },
+  draggable: Boolean,
   defaultExpandAll: Boolean
 })
 
+onMounted(() => {
+  Object.entries(reference.value.nodeMap).forEach(([_key]) => {
+    checked[_key] = false
+  })
+})
 </script>
 
 <style lang="scss" scoped>

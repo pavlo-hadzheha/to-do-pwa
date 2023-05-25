@@ -1,6 +1,7 @@
 <template>
   <div
     ref="el"
+    :style="style"
     class="box"
   />
 </template>
@@ -12,7 +13,7 @@ import { useDraggable } from '../composables/useDraggable'
 
 const el = ref()
 
-useDraggable(el)
+const { style } = useDraggable(el)
 </script>
 
 <style lang="scss" scoped>

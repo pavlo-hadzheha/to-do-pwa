@@ -3,6 +3,8 @@
     <div
       :ref="setDraggableElement"
       class="droppable"
+      :style="draggable.style"
+      :data-node-key="data[0].$key"
     >
       <slot
         :item="data[0]"
@@ -50,9 +52,12 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { inject, onMounted, provide, ref, computed, watch } from 'vue'
 import { keyBy, cloneDeep } from 'lodash'
 import { useDraggable } from '../composables/useDraggable'
+import { flattenDeep } from '../helpers'
+
+defineEmits(['drop'])
 
 const props = defineProps({
   items: {
@@ -60,12 +65,13 @@ const props = defineProps({
     default: () => ([])
 
   },
-  children: Boolean,
 
+  children: Boolean,
   childrenPath: {
     type: String,
     default: 'children'
   },
+
   depth: {
     type: Number,
     default: 0
@@ -74,22 +80,39 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  keyProp: {
+    type: String,
+    default: 'id'
+  },
+
   defaultExpandedKeys: {
     type: Array,
     default: () => ([])
   },
   defaultExpandAll: Boolean,
-  keyProp: {
-    type: String,
-    default: 'id'
-  }
-})
 
-const data = ref([])
-const nodeMap = ref(null)
+  draggable: Boolean,
+  onDrapstart: Function,
+  onDrop: Function
+
+})
+const isFirstNode = props.depth === 0 && props.index === 0
 const el = ref()
 const handle = ref()
-useDraggable(el, handle)
+
+const data = ref([])
+
+const rootNodeMap = !isFirstNode && inject('nodeMap')
+const nodeMap = computed(() => (isFirstNode
+  ? keyBy(flattenDeep(data.value, props.childrenPath), props.keyProp)
+  : rootNodeMap.value))
+
+const draggable = useDraggable(el, {
+  // _droppableSelector: () => `.droppable[data-node-key]:not([data-node-key="${data.value[0].$key}"])`,
+  _handle: handle,
+  onDrop: props.onDrop,
+  onDragstart: props.onDrapstart
+})
 
 function expandDefaultExpandedKeys () {
   if (!props.defaultExpandAll) {
@@ -109,15 +132,6 @@ function expandDefaultExpandedKeys () {
   }
 }
 
-function flatten (items) {
-  return items.flatMap((item) => {
-    return [
-      item,
-      ...(item[props.childrenPath] ? flatten(item[props.childrenPath]) : [])
-    ]
-  })
-}
-
 function addKeysToItems (items, parentKey = '') {
   return items.map(item => {
     const $key = parentKey ? `${parentKey}-${item[props.keyProp]}` : `${item[props.keyProp]}`
@@ -125,11 +139,8 @@ function addKeysToItems (items, parentKey = '') {
     if (item[props.childrenPath]) {
       item[props.childrenPath] = addKeysToItems(item[props.childrenPath], $key)
     }
-
-    return {
-      ...item,
-      $key
-    }
+    item.$key = $key
+    return item
   })
 }
 
@@ -141,7 +152,7 @@ function setBranchExpansionState (item, state) {
 }
 
 function setDraggableElement (_element) {
-  el.value = _element
+  el.value = _element instanceof HTMLElement ? _element : _element?.$el
 }
 
 function setHandleElement (_handle) {
@@ -157,9 +168,20 @@ const toggle = (item) => {
 }
 
 onMounted(async () => {
-  data.value = addKeysToItems(cloneDeep(props.items))
-  nodeMap.value = keyBy(flatten(data.value), props.keyProp)
-  expandDefaultExpandedKeys()
+  data.value = props.items
+  if (isFirstNode) {
+    data.value = addKeysToItems(cloneDeep(data.value))
+    expandDefaultExpandedKeys()
+  }
+})
+
+if (isFirstNode) provide('nodeMap', nodeMap)
+
+watch(() => props.draggable, _enabled => _enabled ? draggable.register() : draggable.unregister())
+
+defineExpose({
+  nodeMap,
+  data
 })
 
 </script>

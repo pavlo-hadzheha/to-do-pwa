@@ -2,3 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+.button {
+    @apply px-2 py-1 bg-blue-600 hover:bg-blue-300 duration-100 rounded-md text-white;
+}
+.button + .button {
+    @apply ml-3
+}
+body {
+    @apply p-5
+}

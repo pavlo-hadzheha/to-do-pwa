@@ -1,14 +1,20 @@
-import { ref, toRef, unref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, toRef, unref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 
-export const useDraggable = (_target, _handle) => {
-//   if (!(unref(_target) instanceof HTMLElement)) throw TypeError('_target must inherit from HTMLElement')
-
+export const useDraggable = (_target, {
+  _handle,
+  _leaveDroppable,
+  _enterDroppable,
+  _droppableSelector,
+  onDrop
+} = {}) => {
   const currentDroppable = ref(null)
   const target = toRef(_target)
   const handle = toRef(_handle)
 
+  const targetStyle = ref(null)
+  const droppableSelector = _droppableSelector || '.droppable'
+
   function onMouseDown (event) {
-    console.log('useDraggable.onMouseDown', unref(handle))
     if (unref(handle) && event.target !== unref(handle)) return
     const shiftX = event.clientX - target.value.getBoundingClientRect().left
     const shiftY = event.clientY - target.value.getBoundingClientRect().top
@@ -16,18 +22,15 @@ export const useDraggable = (_target, _handle) => {
     const copy = target.value.cloneNode(true)
     target.value.replaceWith(copy)
     document.body.append(target.value)
-    target.value.style.position = 'absolute'
-    target.value.style.opacity = 0.5
-    target.value.style.zIndex = 1000
-    console.log(target.value)
-
-    // target.value.style.visibility = 'hidden'
+    targetStyle.value = {
+      position: 'absolute',
+      opacity: 0.5,
+      zIndex: 9999
+    }
 
     moveAt(event.pageX, event.pageY)
 
     function moveAt (pageX, pageY) {
-      console.log('useDraggable.moveAt')
-
       target.value.style.left = pageX - shiftX + 'px'
       target.value.style.top = pageY - shiftY + 'px'
     }
@@ -41,7 +44,7 @@ export const useDraggable = (_target, _handle) => {
 
       if (!elemBelow) return
 
-      const droppableBelow = elemBelow.closest('.droppable')
+      const droppableBelow = elemBelow.closest(typeof droppableSelector === 'function' ? droppableSelector() : droppableSelector)
       if (currentDroppable.value !== droppableBelow) {
         if (currentDroppable.value) {
           leaveDroppable(currentDroppable.value)
@@ -58,42 +61,45 @@ export const useDraggable = (_target, _handle) => {
     target.value.onmouseup = function () {
       document.removeEventListener('mousemove', onMouseMove)
       copy.replaceWith(target.value)
-      target.value.onmouseup = null
-      target.value.style.position = 'static'
-      target.value.style.opacity = 1
+      targetStyle.value = null
       leaveDroppable(currentDroppable.value)
-      // target.value.style.visibility = 'visible'
+      onDrop && onDrop(target.value, currentDroppable.value)
     }
+    return false
   }
 
-  onMounted(() => {
-    nextTick(() => {
-      console.log('useDraggable.onMounted', handle.value)
-      if (!target.value) return
-      (unref(_handle) || target.value).style.cursor = 'move';
-      (unref(_handle) || target.value).addEventListener('mousedown', onMouseDown)
-    })
-  })
-
-  onUnmounted(() => {
-    if (!target.value) return
-    target.value.style.cursor = 'initial'
-    target.value.removeEventListener('onmousedown', onMouseDown)
-  })
+  onMounted(register)
+  onUnmounted(unregister)
 
   function enterDroppable (elem) {
     if (elem) {
-      elem.style.background = 'lime'
+      if (_enterDroppable) _leaveDroppable()
+      else elem.style.background = 'lime'
     }
   }
 
   function leaveDroppable (elem) {
     if (elem) {
-      elem.style.background = ''
+      if (_leaveDroppable) _leaveDroppable()
+      else elem.style.background = ''
     }
   }
-
-  return {
-
+  function unregister () {
+    if (!target.value) return
+    target.value.style.cursor = 'initial'
+    target.value.removeEventListener('onmousedown', onMouseDown)
   }
+
+  function register () {
+    nextTick(() => {
+      if (!target.value) return
+      (unref(_handle) || target.value).style.cursor = 'move';
+      (unref(_handle) || target.value).addEventListener('mousedown', onMouseDown)
+    })
+  }
+  return reactive({
+    style: targetStyle,
+    register,
+    unregister
+  })
 }
