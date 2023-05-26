@@ -5,7 +5,8 @@ export const useDraggable = (_target, {
   _leaveDroppable,
   _enterDroppable,
   _droppableSelector,
-  onDrop
+  onDrop,
+  onDragstart
 } = {}) => {
   const currentDroppable = ref(null)
   const target = toRef(_target)
@@ -16,6 +17,7 @@ export const useDraggable = (_target, {
 
   function onMouseDown (event) {
     if (unref(handle) && event.target !== unref(handle)) return
+    onDragstart && onDragstart(target.value)
     const shiftX = event.clientX - target.value.getBoundingClientRect().left
     const shiftY = event.clientY - target.value.getBoundingClientRect().top
 
@@ -63,7 +65,7 @@ export const useDraggable = (_target, {
       copy.replaceWith(target.value)
       targetStyle.value = null
       leaveDroppable(currentDroppable.value)
-      onDrop && onDrop(target.value, currentDroppable.value)
+      onDrop && onDrop([target.value, currentDroppable.value])
     }
     return false
   }

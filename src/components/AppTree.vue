@@ -12,7 +12,8 @@
       :default-expanded-keys="defaultExpandedKeys"
       :default-expand-all="defaultExpandAll"
       :draggable="draggable"
-      @drop="$emit('drop', $event)"
+      @drop="$emit('drop', ...$event)"
+      @dragstart="$emit('dragstart', $event)"
     >
       <div
         class="tree-node"
@@ -25,8 +26,14 @@
           }"
           @click="toggle(item)"
         >
-          <ChevronDown v-if="isExpanded" />
-          <ChevronRight v-else />
+          <ChevronDown
+            v-if="isExpanded"
+            class="cursor-e-resize"
+          />
+          <ChevronRight
+            v-else
+            class="cursor-s-resize"
+          />
         </div>
         <slot
           v-bind="slotData"
@@ -38,9 +45,13 @@
             :style="{
               marginLeft: `${10 * depth}px`,
             }"
-            class="flex items-center gap-x-3"
+            class="flex items-center gap-x-3 w-full"
+            :class="isExpanded ? 'cursor-e-resize' : 'cursor-s-resize'"
+            @click="toggle(item)"
           >
-            <div class="flex items-center gap-x-1">
+            <div
+              class="flex items-center gap-x-1"
+            >
               <ArrowsIcon
                 v-if="draggable"
                 :ref="setHandleElement"
@@ -49,11 +60,16 @@
               <input
                 v-model="checked[item[keyProp]]"
                 type="checkbox"
+                class="cursor-grab"
                 @click.stop
               >
             </div>
 
-            <span :class="isExpanded ? 'text-red-500' : 'text-green-500'">
+            <span
+              class="cursor-pointer"
+              :class="!isExpanded ? 'text-red-500' : 'text-green-500'"
+              @click.stop="checked[item[keyProp]] = !checked[item[keyProp]]"
+            >
               {{ item.title }} ({{ !!isExpanded }})
             </span>
           </div>
