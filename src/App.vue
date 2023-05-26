@@ -1,11 +1,12 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import AppTree from './components/AppTree.vue'
-import DragTest from './components/DragTest.vue'
+import { flattenDeep } from './helpers'
+import { keyBy, cloneDeep } from 'lodash'
 
 const listVisible = ref(true)
 const draggable = ref(true)
-const items = reactive([
+const items = ref([
   {
     id: 1,
     title: 'Grocery Shopping',
@@ -72,7 +73,11 @@ const items = reactive([
   }
 ])
 
+const itemsMap = ref(null)
+initItemsMap()
+
 function onDrop (_draggable, _droppable) {
+  console.log('onDrop', _draggable, _droppable)
   const draggableKeyChain = _draggable.dataset.nodeKey.split('-')
   const droppableKeyChain = _droppable?.dataset.nodeKey?.split('-') || null
   const draggableKey = draggableKeyChain.at(-1)
@@ -80,54 +85,52 @@ function onDrop (_draggable, _droppable) {
   const droppableKey = droppableKeyChain?.at(-1)
 
   if (draggableKeyChain.length < droppableKeyChain?.length) return
-  let draggableParentNode = nodeMap.value[draggableParentKey]
   if (draggableParentKey) {
-    draggableParentNode = nodeMap.value[draggableParentKey]
-    draggableParentNode[props.childrenPath] = draggableParentNode[props.childrenPath]
-      .filter(_child => _child[props.keyProp] !== draggableKey)
+    const draggableParentNode = itemsMap.value[draggableParentKey]
+    draggableParentNode.children = draggableParentNode.children
+      .filter(_child => _child.id !== draggableKey)
   } else {
-    delete nodeMap.value[draggableKey]
+    delete itemsMap.value[draggableKey]
   }
-  const draggableNode = nodeMap.value[draggableKey]
-  const droppableNode = nodeMap.value[droppableKey]
+  const draggableNode = itemsMap.value[draggableKey]
+  const droppableNode = itemsMap.value[droppableKey]
   console.log('droppableNode', droppableNode)
-  if (!droppableNode[props.childrenPath]) droppableNode[props.childrenPath] = []
-  droppableNode[props.childrenPath].push(cloneDeep(draggableNode))
-
-  // console.table([
-  //   { draggableKey, draggableKeyChain },
-  //   { droppableKey, droppableKeyChain }
-  // ])
-  setBranchExpansionState(droppableNode, true)
-  // nodeMap.value[droppableKey].expanded =
-  // console.log(nodeMap.value[droppableKey])
+  if (!droppableNode.children) droppableNode.children = []
+  droppableNode.children.push(cloneDeep(draggableNode))
+  // setBranchExpansionState(droppableNode, true)
+  items.value = Object.values(itemsMap.value).filter(_item => _item)
 }
 
+function initItemsMap () {
+  itemsMap.value = keyBy(flattenDeep(items.value, 'children'), 'id')
+}
 </script>
 
 <template>
-  <button
-    class="button"
-    @click="listVisible = !listVisible"
-  >
-    Toggle tree
-  </button>
-  <button
-    class="button"
-    @click="draggable = !draggable"
-  >
-    Toggle draggable
-  </button> <br>
+  <div class="mb-6">
+    <button
+      class="button"
+      @click="listVisible = !listVisible"
+    >
+      Toggle tree
+    </button>
+    <button
+      class="button"
+      @click="draggable = !draggable"
+    >
+      Toggle draggable
+    </button>
+  </div>
+
   <!-- <AppTodoList :items="items" /> -->
   <AppTree
     v-if="listVisible"
     :items="items"
     :children="true"
+    class="p-2 pl-5 border-green-500 border-dashed border-[1.5px]"
     :default-expanded-keys="[4]"
     :default-expand-all="true"
     :draggable="draggable"
+    @drop="onDrop"
   />
-  <br>
-  <br>
-  <DragTest />
 </template>

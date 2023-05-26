@@ -3,7 +3,7 @@
     <div
       :ref="setDraggableElement"
       class="droppable"
-      :style="draggable.style"
+      :style="dragConfig.style"
       :data-node-key="data[0].$key"
     >
       <slot
@@ -14,6 +14,7 @@
         :toggle="toggle"
         :setDraggableElement="setDraggableElement"
         :setHandleElement="setHandleElement"
+        :draggable="draggable"
       >
         <div
           :style="{
@@ -32,6 +33,9 @@
           :children-path="childrenPath"
           :depth="depth + 1"
           :index="0"
+          :draggable="draggable"
+          @drop="onDrop($event)"
+          @dragstart="onDragstart"
         >
           <slot v-bind="slotData" />
         </VFor>
@@ -45,6 +49,9 @@
       :children-path="childrenPath"
       :depth="depth"
       :index="index + 1"
+      :draggable="draggable"
+      @drop="oDrop($event)"
+      @dragstart="onDragstart"
     >
       <slot v-bind="slotData" />
     </VFor>
@@ -57,13 +64,12 @@ import { keyBy, cloneDeep } from 'lodash'
 import { useDraggable } from '../composables/useDraggable'
 import { flattenDeep } from '../helpers'
 
-defineEmits(['drop'])
+const emit = defineEmits(['drop', 'dragstart'])
 
 const props = defineProps({
   items: {
     type: Array,
     default: () => ([])
-
   },
 
   children: Boolean,
@@ -91,10 +97,7 @@ const props = defineProps({
   },
   defaultExpandAll: Boolean,
 
-  draggable: Boolean,
-  onDrapstart: Function,
-  onDrop: Function
-
+  draggable: Boolean
 })
 const isFirstNode = props.depth === 0 && props.index === 0
 const el = ref()
@@ -107,11 +110,11 @@ const nodeMap = computed(() => (isFirstNode
   ? keyBy(flattenDeep(data.value, props.childrenPath), props.keyProp)
   : rootNodeMap.value))
 
-const draggable = useDraggable(el, {
+const dragConfig = useDraggable(el, {
   // _droppableSelector: () => `.droppable[data-node-key]:not([data-node-key="${data.value[0].$key}"])`,
   _handle: handle,
-  onDrop: props.onDrop,
-  onDragstart: props.onDrapstart
+  onDrop,
+  onDragstart
 })
 
 function expandDefaultExpandedKeys () {
@@ -159,12 +162,19 @@ function setHandleElement (_handle) {
   handle.value = _handle instanceof HTMLElement ? _handle : _handle?.$el
 }
 
-const toggle = (item) => {
-  console.log('VFor.toggle')
+function toggle (item) {
   item.expanded = !item.expanded
   if (!item.expanded) {
     setBranchExpansionState(item, false)
   }
+}
+
+function onDrop ([_draggable, _droppable]) {
+  emit('drop', [_draggable, _droppable])
+}
+
+function onDragstart (_draggable) {
+  emit('dragstart', _draggable)
 }
 
 onMounted(async () => {
@@ -177,7 +187,7 @@ onMounted(async () => {
 
 if (isFirstNode) provide('nodeMap', nodeMap)
 
-watch(() => props.draggable, _enabled => _enabled ? draggable.register() : draggable.unregister())
+watch(() => props.draggable, _enabled => _enabled ? dragConfig.register() : dragConfig.unregister())
 
 defineExpose({
   nodeMap,
